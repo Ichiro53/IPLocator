@@ -224,12 +224,34 @@ final class ReallyFreeGeoIpService extends LocatorService implements Locator {
     }
 }
 
+final class MyIpLocationService extends LocatorService implements Locator {
+    public function locate(Ip $ip): Location|null
+    {
+        $url = 'https://ipwho.is/' . $ip->getIp();
+        $json = $this->requester->request($url);
+        if (!$json)
+            return null;
+        $point = new Point(
+            $json['latitude'],
+            $json['longitude'],
+        );
+        return new Location(
+            $ip,
+            $json['country'],
+            $json['city'],
+            $json['postal'],
+            $point
+        );
+    }
+}
+
 $requester = new FileGetRequester();
 $ip = new Ip('77.79.133.234');
 $s1 = new FreeIpApiService($requester);
 $s2 = new IpApiComService($requester);
 $s3 = new ReallyFreeGeoIpService($requester);
-foreach ([$s1, $s2, $s3] as $service) {
+$s4 = new MyIpLocationService($requester);
+foreach ([$s1, $s2, $s3, $s4] as $service) {
     $info = $service->locate($ip);
     if ($info !== null) {
         echo get_class($service) . PHP_EOL;
